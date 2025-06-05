@@ -2,26 +2,36 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './MainPage.css';
 
-// Sample data structure
+// Default configurations for sections
+const DEFAULT_SECTIONS_CONFIG = {
+  'todo': { id: 'todo', title: 'Todo', tasks: [] }
+};
+const DEFAULT_SECTION_ORDER = ['todo'];
+
+const PRIORITY_SECTIONS_CONFIG = {
+  'backlog': { id: 'backlog', title: 'Backlog', tasks: [] },
+  'todo': { id: 'todo', title: 'To Do', tasks: [] },
+  'done': { id: 'done', title: 'Done', tasks: [] }
+};
+const PRIORITY_SECTION_ORDER = ['backlog', 'todo', 'done'];
+
+// Base initial structure for the entire list state
 const initialLists = {
   'personal': {
     id: 'personal',
     title: 'Todo List',
-    sections: {
-      'todo': {
-        id: 'todo',
-        title: 'todo',
-        tasks: []
-      }
-    },
-    sectionOrder: ['todo']
+    priorityEnabled: false,
+    sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS_CONFIG)),
+    sectionOrder: [...DEFAULT_SECTION_ORDER]
   }
 };
 
-const TaskItem = ({ task, index, onToggle, onUpdate, onDelete }) => {
+const TaskItem = ({ task, index, onToggle, onUpdate, onDelete, onTaskClick, onMove, priorityEnabled, currentSectionId, sectionOptions }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(task.text);
   const inputRef = useRef(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -29,6 +39,20 @@ const TaskItem = ({ task, index, onToggle, onUpdate, onDelete }) => {
       inputRef.current.select();
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   const handleBlur = () => {
     if (text.trim() !== '') {
@@ -58,9 +82,19 @@ const TaskItem = ({ task, index, onToggle, onUpdate, onDelete }) => {
   return (
     <div 
       className={`task-item ${task.completed ? 'completed' : ''}`}
-      onClick={() => !isEditing && onToggle(task.id)}
+      onClick={(e) => {
+        if (!isEditing) {
+          onTaskClick(task);
+        }
+      }}
     >
-      <div className="task-checkbox">
+      <div 
+        className="task-checkbox"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(task.id);
+        }}
+      >
         {task.completed && (
           <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M1 4.5L4.33333 8L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -105,13 +139,46 @@ const TaskItem = ({ task, index, onToggle, onUpdate, onDelete }) => {
           <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} className="delete-btn" title="Delete task">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.5 5.5L18.88 18.22C18.74 19.71 17.49 20.82 15.99 20.82H8.01C6.51 20.82 5.26 19.71 5.12 18.22L4.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 5.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M14.5 5.5V4.25C14.5 3.28 13.72 2.5 12.75 2.5H11.25C10.28 2.5 9.5 3.28 9.5 4.25V5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
+          {priorityEnabled && (
+            <button 
+              className="task-menu-trigger-btn" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setIsMenuOpen(prev => !prev); 
+              }}
+              title="Task options"
+            >
+              <svg className="task-menu-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 8C13.1 8 14 7.1 14 6C14 4.9 13.1 4 12 4C10.9 4 10 4.9 10 6C10 7.1 10.9 8 12 8ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10ZM12 16C10.9 16 10 16.9 10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18C14 16.9 13.1 16 12 16Z"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+      {isMenuOpen && priorityEnabled && (
+        <div className="task-dropdown-menu" ref={menuRef}>
+          {(sectionOptions || [])
+            .filter(option => option.id !== currentSectionId)
+            .map(option => (
+              <div
+                key={option.id}
+                className="task-dropdown-menu-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(option.id);
+                  setIsMenuOpen(false);
+                }}
+              >
+                Move to {option.title}
+              </div>
+            ))}
         </div>
       )}
     </div>
   );
 };
 
-const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onDragEnd }) => {
+const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onTaskClick, onDragEnd, onStartEditTitle, onSaveEditTitle, onCancelEditTitle, editingSectionId, editingSectionTitleText, sectionInputRef, onAddNewTask, onTaskMove, priorityEnabled, sectionOptions }) => {
   return (
     <div className="section">
       <h3 className="section-title">{section.title}</h3>
@@ -132,11 +199,17 @@ const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onD
                     {...provided.dragHandleProps}
                   >
                     <TaskItem
+                      key={task.id}
                       task={task}
                       index={index}
                       onToggle={onTaskToggle}
                       onUpdate={onTaskUpdate}
                       onDelete={onTaskDelete}
+                      onTaskClick={onTaskClick}
+                      onMove={(destinationSectionId) => onTaskMove(task.id, destinationSectionId)}
+                      priorityEnabled={priorityEnabled}
+                      currentSectionId={section.id}
+                      sectionOptions={sectionOptions}
                     />
                   </div>
                 )}
@@ -153,23 +226,89 @@ const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onD
 const MainPage = () => {
   const [lists, setLists] = useState(() => {
     const savedLists = localStorage.getItem('todoLists');
+    let dataToLoad;
     if (savedLists) {
-      const parsedLists = JSON.parse(savedLists);
-      // Ensure the title is set to 'Todo List' even when loading from localStorage
-      if (parsedLists.personal && parsedLists.personal.title !== 'Todo List') {
-        parsedLists.personal.title = 'Todo List';
+      try {
+        dataToLoad = JSON.parse(savedLists);
+        if (!dataToLoad.personal || typeof dataToLoad.personal !== 'object') {
+          console.warn("localStorage 'personal' list data is missing or invalid, reverting to default.");
+          dataToLoad = JSON.parse(JSON.stringify(initialLists));
+        } else {
+          const personalList = dataToLoad.personal;
+          personalList.title = 'Todo List'; // Ensure main title is set
+
+          if (typeof personalList.priorityEnabled === 'undefined') {
+            personalList.priorityEnabled = false; // Default if missing
+          }
+
+          const expectedSectionsConfig = personalList.priorityEnabled ? PRIORITY_SECTIONS_CONFIG : DEFAULT_SECTIONS_CONFIG;
+          const expectedSectionOrder = personalList.priorityEnabled ? PRIORITY_SECTION_ORDER : DEFAULT_SECTION_ORDER;
+
+          let sectionsAreCorrect = true;
+          if (!personalList.sections || !personalList.sectionOrder ||
+              JSON.stringify(Object.keys(personalList.sections).sort()) !== JSON.stringify(Object.keys(expectedSectionsConfig).sort()) ||
+              JSON.stringify(personalList.sectionOrder.sort()) !== JSON.stringify(expectedSectionOrder.sort())) {
+            sectionsAreCorrect = false;
+          } else {
+            for (const sectionId of personalList.sectionOrder) {
+                if (!personalList.sections[sectionId] || personalList.sections[sectionId].title !== expectedSectionsConfig[sectionId]?.title) {
+                    sectionsAreCorrect = false;
+                    break;
+                }
+            }
+          }
+
+          if (!sectionsAreCorrect) {
+            console.warn("localStorage list sections do not match priorityEnabled, rebuilding sections.");
+            let allTasks = [];
+            if (personalList.sections && personalList.sectionOrder) {
+                personalList.sectionOrder.forEach(secId => {
+                    if (personalList.sections[secId] && Array.isArray(personalList.sections[secId].tasks)) {
+                        allTasks = allTasks.concat(personalList.sections[secId].tasks);
+                    }
+                });
+            }
+            allTasks = allTasks.filter((task, index, self) => index === self.findIndex(t => t.id === task.id));
+
+            personalList.sections = JSON.parse(JSON.stringify(expectedSectionsConfig));
+            personalList.sectionOrder = [...expectedSectionOrder];
+
+            if (personalList.priorityEnabled) {
+              const targetSectionId = personalList.sections.todo ? 'todo' : expectedSectionOrder[0];
+              if (personalList.sections[targetSectionId]) {
+                personalList.sections[targetSectionId].tasks = allTasks;
+              } else {
+                 console.error("Target section for task redistribution not found in priority mode.");
+              }
+            } else {
+              if (personalList.sections.todo) {
+                personalList.sections.todo.tasks = allTasks;
+              } else {
+                console.error("Target section for task redistribution not found in default mode.");
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing localStorage lists, reverting to default:', error);
+        dataToLoad = JSON.parse(JSON.stringify(initialLists));
       }
-      console.log('Loading lists from localStorage:', parsedLists);
-      return parsedLists;
+    } else {
+      dataToLoad = JSON.parse(JSON.stringify(initialLists));
     }
-    console.log('Initializing with default lists:', initialLists);
-    return JSON.parse(JSON.stringify(initialLists)); // Deep clone to prevent reference issues
+    console.log('Initializing lists with:', dataToLoad);
+    return dataToLoad;
   });
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [inputValue, setInputValue] = useState('');
-  const [activeSection, setActiveSection] = useState(initialLists.personal.sectionOrder[0]);
+  const [activeSection, setActiveSection] = useState(() => {
+    // Initialize with default; useEffect will sync with loaded 'lists' state.
+    return initialLists.personal.sectionOrder[0];
+  });
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [description, setDescription] = useState('');
   const inputRef = useRef(null);
   const newListInputRef = useRef(null);
   const sectionInputRef = useRef(null); // Ref for section title edit input
@@ -177,8 +316,9 @@ const MainPage = () => {
   const [editingSectionId, setEditingSectionId] = useState(null);
   const [editingSectionTitleText, setEditingSectionTitleText] = useState('');
 
-  const currentList = lists['personal'] || { sections: {}, sectionOrder: [] };
-  const sections = currentList.sectionOrder.map(sectionId => ({
+  const currentList = lists['personal'] || JSON.parse(JSON.stringify(initialLists.personal));
+  const sections = (currentList.sectionOrder || []).map(sectionId => ({
+    ...(currentList.sections[sectionId] || { id: sectionId, title: sectionId, tasks: [] }),
     ...currentList.sections[sectionId],
     id: sectionId
   }));
@@ -188,6 +328,16 @@ const MainPage = () => {
       inputRef.current.focus();
     }
   }, [isExpanded]);
+
+  useEffect(() => {
+    // Sync activeSection if the loaded lists have a different structure or activeSection is invalid
+    const personalList = lists.personal;
+    if (personalList && personalList.sections && personalList.sectionOrder) {
+      if (!personalList.sections[activeSection] && personalList.sectionOrder.length > 0) {
+        setActiveSection(personalList.sectionOrder[0]);
+      }
+    }    
+  }, [lists, activeSection]);
 
   useEffect(() => {
     if (editingSectionId && sectionInputRef.current) {
@@ -201,6 +351,7 @@ const MainPage = () => {
     console.log('Saving lists to localStorage:', lists);
     localStorage.setItem('todoLists', JSON.stringify(lists));
   }, [lists]);
+
 
   const handleStartEditSectionTitle = (sectionId, currentTitle) => {
     setEditingSectionId(sectionId);
@@ -279,6 +430,7 @@ const MainPage = () => {
       const newTask = {
         id: `task-${Date.now()}`,
         text: inputValue.trim(),
+        description: '',
         completed: false
       };
       
@@ -343,7 +495,7 @@ const MainPage = () => {
     });
   };
 
-  const handleTaskUpdate = (taskId, newText) => {
+  const handleTaskUpdate = (taskId, newText, newDescription) => {
     if (newText.trim() === '') return;
     
     setLists(prev => {
@@ -354,7 +506,11 @@ const MainPage = () => {
           updatedSections[sectionId] = {
             ...updatedSections[sectionId],
             tasks: updatedSections[sectionId].tasks.map((t, i) => 
-              i === taskIndex ? { ...t, text: newText } : t
+              i === taskIndex ? { 
+                ...t, 
+                text: newText,
+                description: newDescription !== undefined ? newDescription : (t.description || '') 
+              } : t
             )
           };
         }
@@ -486,13 +642,51 @@ const MainPage = () => {
     setNewListName('');
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setDescription(task.description || '');
+  };
+
+  const handleSaveDescription = () => {
+    if (selectedTask) {
+      handleTaskUpdate(selectedTask.id, selectedTask.text, description);
+      setSelectedTask(null);
+    }
+  };
+
+  const handleCloseDescription = () => {
+    setSelectedTask(null);
+  };
+
   return (
     <div className="main-page">
+      {selectedTask && (
+        <div className="description-modal-overlay" onClick={handleCloseDescription}>
+          <div className="description-modal" onClick={e => e.stopPropagation()}>
+            <h3>Description</h3>
+            <textarea
+              className="description-textarea"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              placeholder="Add a more detailed description..."
+            />
+            <div className="description-actions">
+              <button className="save-description-btn" onClick={handleSaveDescription}>
+                Save
+              </button>
+              <button className="cancel-description-btn" onClick={handleCloseDescription}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="centered-box">
         <div className="content-container">
           <div className="left-space">
             <div className="sidebar">
-              <h2 className="list-title">{(currentList && currentList.title) || 'My Lists'}</h2>
+              <h2 className="list-title">{currentList?.title}</h2>
               <div className="section-tabs">
                 {sections.map(section => (
                   <div key={section.id} className={`section-tab-item-container ${activeSection === section.id ? 'active' : ''}`}>
@@ -602,6 +796,7 @@ const MainPage = () => {
                         onTaskToggle={handleTaskToggle}
                         onTaskUpdate={handleTaskUpdate}
                         onTaskDelete={handleTaskDelete}
+                        onTaskClick={handleTaskClick}
                         onDragEnd={onDragEnd}
                       />
                     ) : (
