@@ -74,8 +74,3 @@ supertodolist/
 ## Lisens
 
 Dette prosjektet er lisensiert under MIT-lisensen. Se [LICENSE](LICENSE) for detaljer.
-
-## Takk til
-
-- [Vite](https://vitejs.dev/) for rask utviklingsopplevelse
-- React-utviklermiljøet for fantastiske verktøy
