@@ -2,7 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './MainPage.css';
 
-// Default configurations for sections
+/**
+ * Hovedkomponent for Todo-apperlikasjonen
+ * 
+ * Denne komponenten håndterer:
+ * - Opprettelse og håndtering av oppgaver
+ * - Kategorisering av oppgaver i seksjoner
+ * - Dra-og-slipp funksjonalitet
+ * - Lagring av data i localStorage
+ */
+
+// Standard konfigurasjon for seksjoner
 const DEFAULT_SECTIONS_CONFIG = {
   'todo': { id: 'todo', title: 'Todo', tasks: [] }
 };
@@ -26,6 +36,21 @@ const initialLists = {
   }
 };
 
+/**
+ * Komponent for å vise en enkelt oppgave
+ * 
+ * @param {Object} props - Egenskaper for komponenten
+ * @param {Object} props.task - Oppgaveobjektet som skal vises
+ * @param {number} props.index - Indeksen til oppgaven i listen
+ * @param {Function} props.onToggle - Funksjon som kalles når oppgaven merkes som fullført/ufullført
+ * @param {Function} props.onUpdate - Funksjon for å oppdatere oppgavetekst
+ * @param {Function} props.onDelete - Funksjon for å slette oppgaven
+ * @param {Function} props.onTaskClick - Funksjon som kalles når oppgaven klikkes på
+ * @param {Function} props.onMove - Funksjon for å flytte oppgaven til en annen seksjon
+ * @param {boolean} props.priorityEnabled - Om prioritetsfunksjonalitet er aktivert
+ * @param {string} props.currentSectionId - ID til gjeldende seksjon
+ * @param {Array} props.sectionOptions - Liste over tilgjengelige seksjoner
+ */
 const TaskItem = ({ task, index, onToggle, onUpdate, onDelete, onTaskClick, onMove, priorityEnabled, currentSectionId, sectionOptions }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(task.text);
@@ -178,6 +203,28 @@ const TaskItem = ({ task, index, onToggle, onUpdate, onDelete, onTaskClick, onMo
   );
 };
 
+/**
+ * Komponent for en seksjon med oppgaver
+ * 
+ * @param {Object} props - Egenskaper for komponenten
+ * @param {Object} props.section - Seksjonsobjektet
+ * @param {Array} props.tasks - Liste over oppgaver i seksjonen
+ * @param {Function} props.onTaskToggle - Funksjon for å bytte status på oppgave
+ * @param {Function} props.onTaskUpdate - Funksjon for å oppdatere oppgave
+ * @param {Function} props.onTaskDelete - Funksjon for å slette oppgave
+ * @param {Function} props.onTaskClick - Funksjon som kalles når en oppgave klikkes på
+ * @param {Function} props.onDragEnd - Funksjon som kalles ved dra-og-slipp
+ * @param {Function} props.onStartEditTitle - Funksjon for å starte redigering av seksjonstittel
+ * @param {Function} props.onSaveEditTitle - Funksjon for å lagre ny seksjonstittel
+ * @param {Function} props.onCancelEditTitle - Funksjon for å avbryte redigering av seksjonstittel
+ * @param {string} props.editingSectionId - ID til seksjonen som redigeres
+ * @param {string} props.editingSectionTitleText - Midlertidig tekst under redigering
+ * @param {Object} props.sectionInputRef - React ref for input-feltet
+ * @param {Function} props.onAddNewTask - Funksjon for å legge til ny oppgave
+ * @param {Function} props.onTaskMove - Funksjon for å flytte oppgave til annen seksjon
+ * @param {boolean} props.priorityEnabled - Om prioritetsfunksjonalitet er aktivert
+ * @param {Array} props.sectionOptions - Liste over tilgjengelige seksjoner
+ */
 const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onTaskClick, onDragEnd, onStartEditTitle, onSaveEditTitle, onCancelEditTitle, editingSectionId, editingSectionTitleText, sectionInputRef, onAddNewTask, onTaskMove, priorityEnabled, sectionOptions }) => {
   return (
     <div className="section">
@@ -223,6 +270,15 @@ const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onT
   );
 };
 
+/**
+ * Hovedkomponent for todo-listen
+ * 
+ * Håndterer:
+ * - Tilstand for lister og oppgaver
+ * - Lagring og lasting fra localStorage
+ * - Håndtering av brukerinteraksjoner
+ * - Visning av modaler og redigeringsmoduser
+ */
 const MainPage = () => {
   const [lists, setLists] = useState(() => {
     const savedLists = localStorage.getItem('todoLists');
@@ -346,9 +402,9 @@ const MainPage = () => {
     }
   }, [editingSectionId]);
 
-  // Save lists to localStorage whenever they change
+  // Lagrer lister til localStorage når de endres
   useEffect(() => {
-    console.log('Saving lists to localStorage:', lists);
+    console.log('Lagrer lister til localStorage:', lists);
     localStorage.setItem('todoLists', JSON.stringify(lists));
   }, [lists]);
 
@@ -470,6 +526,10 @@ const MainPage = () => {
     }
   };
 
+  /**
+   * Bygger status på en oppgave mellom fullført og ufullført
+   * @param {string} taskId - ID til oppgaven som skal endres
+   */
   const handleTaskToggle = (taskId) => {
     setLists(prev => {
       const updatedSections = { ...prev.personal.sections };
@@ -495,6 +555,12 @@ const MainPage = () => {
     });
   };
 
+  /**
+   * Oppdaterer tekst og beskrivelse for en oppgave
+   * @param {string} taskId - ID til oppgaven som skal oppdateres
+   * @param {string} newText - Ny tekst for oppgaven
+   * @param {string} [newDescription] - Ny beskrivelse for oppgaven (valgfri)
+   */
   const handleTaskUpdate = (taskId, newText, newDescription) => {
     if (newText.trim() === '') return;
     
@@ -526,6 +592,10 @@ const MainPage = () => {
     });
   };
 
+  /**
+   * Sletter en oppgave fra alle seksjoner
+   * @param {string} taskId - ID til oppgaven som skal slettes
+   */
   const handleTaskDelete = (taskId) => {
     setLists(prev => {
       const updatedSections = { ...prev.personal.sections };
@@ -549,6 +619,14 @@ const MainPage = () => {
     });
   };
 
+  /**
+   * Håndterer slutten av en dra-og-slipp operasjon
+   * @param {Object} result - Informasjon om dra-og-slipp operasjonen
+   * @param {Object} result.source - Kilde for dra-operasjonen
+   * @param {Object} result.destination - Destinasjon for dra-operasjonen
+   * @param {string} result.draggableId - ID til elementet som ble dratt
+   * @param {string} result.type - Type element som ble dratt
+   */
   const onDragEnd = (result) => {
     const { source, destination, draggableId, type } = result;
 
@@ -615,6 +693,9 @@ const MainPage = () => {
     }
   };
 
+  /**
+   * Legger til en ny seksjon/undermappe
+   */
   const handleAddList = () => {
     if (newListName.trim() === '') return;
     
@@ -647,6 +728,9 @@ const MainPage = () => {
     setDescription(task.description || '');
   };
 
+  /**
+   * Lagrer beskrivelsen for den valgte oppgaven
+   */
   const handleSaveDescription = () => {
     if (selectedTask) {
       handleTaskUpdate(selectedTask.id, selectedTask.text, description);
@@ -654,6 +738,9 @@ const MainPage = () => {
     }
   };
 
+  /**
+   * Lukker beskrivelsesmodalen uten å lagre endringer
+   */
   const handleCloseDescription = () => {
     setSelectedTask(null);
   };

@@ -2,6 +2,32 @@
 
 En enkel og effektiv todo-liste laget med React og Vite. Hold oversikt over daglige oppgaver med et rent og brukervennlig grensesnitt.
 
+## Hvordan bruke
+
+1. **Legg til oppgaver**
+   - Skriv inn oppgaven i feltet nederst på siden
+   - Trykk Enter eller på +-knappen for å legge den til
+
+2. **Marker oppgaver som fullført**
+   - Klikk på avkrysningsboksen foran hver oppgave
+   - Fullførte oppgaver blir gjennomstreket
+
+3. **Filtrer oppgaver**
+   - Bruk filterknappene øverst til venstre for å vise:
+     - Alle oppgaver
+     - Kun aktive (ufullførte) oppgaver
+     - Kun fullførte oppgaver
+
+4. **Slett oppgaver**
+   - Klikk på X-knappen til høyre for oppgaven du vil slette
+   
+5. **Dra og slipp**
+   - Hold tak i oppgaven og dra den for å endre rekkefølgen
+
+## Utviklermiljø
+
+For å sette opp utviklermiljøet ditt:
+
 ## Funksjoner
 
 - **Legg til oppgaver** - Enkelt legge til nye oppgaver
@@ -24,23 +50,57 @@ En enkel og effektiv todo-liste laget med React og Vite. Hold oversikt over dagl
 
 ## Kom i gang
 
-1. Klon prosjektet:
+1. **Klon prosjektet**
    ```bash
    git clone https://github.com/dittbrukernavn/supertodolist.git
    cd supertodolist
    ```
 
-2. Installer avhengigheter:
+2. **Installer avhengigheter**
    ```bash
    npm install
    ```
 
-3. Start utviklingsserveren:
+3. **Start utviklingsserveren**
    ```bash
    npm run dev
    ```
+   Dette starter en lokal utviklingsserver med live reload.
 
-4. Åpne nettleseren og gå til `http://localhost:5173`
+4. **Åpne i nettleseren**
+   Gå til `http://localhost:5173` i din nettleser
+
+## Utvikling
+
+### Viktige filer og mapper
+
+- `src/App.jsx` - Hovedkomponenten for applikasjonen
+- `src/components/TodoApp/` - Hovedlogikken for todo-listen
+- `src/styles/` - Globale stiler
+- `public/` - Statiske filer som blir kopiert til build-mappen
+
+### Vanlige npm-kommandoer
+
+- `npm run dev` - Starter utviklingsserveren
+- `npm run build` - Bygger produksjonsversjon
+- `npm run lint` - Kjører ESLint for å sjekke kodekvalitet
+- `npm run preview` - Forhåndsviser produksjonsbygget lokalt
+
+### Hvordan legge til nye funksjoner
+
+1. Lag en ny branch for funksjonen din:
+   ```bash
+   git checkout -b navn-pa-funksjonen
+   ```
+2. Gjør endringene dine
+3. Test endringene grundig
+4. Send en pull request til hovedgrenen
+
+### Feilsøking
+
+- **Feil ved installasjon?** Prøv å slette `node_modules` og `package-lock.json`, og kjør `npm install` på nytt.
+- **Serveren starter ikke?** Sjekk om port 5173 er opptatt, eller om du har alle avhengigheter installert.
+- **React-advarsler?** Sjekk konsollen i nettleseren for mer informasjon.
 
 ## Bygge for produksjon
 
@@ -74,8 +134,3 @@ supertodolist/
 ## Lisens
 
 Dette prosjektet er lisensiert under MIT-lisensen. Se [LICENSE](LICENSE) for detaljer.
-
-## Takk til
-
-- [Vite](https://vitejs.dev/) for rask utviklingsopplevelse
-- React-utviklermiljøet for fantastiske verktøy

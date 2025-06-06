@@ -1,0 +1,96 @@
+# Super Todo List - Utviklingslogg
+
+## Uke 23
+
+### Mandag - Planlegging
+**Gjennomførte oppgaver:**
+- Analysert kravspesifikasjoner
+- Laget prosjektplan
+- Designet grensesnitt i Figma
+- Planlagt komponentstruktur
+
+**Utfordringer:**
+- Justert design for mobil
+- Vurdert datalagringsløsninger
+
+---
+
+### Tirsdag - Grunnleggende struktur
+**Utvikling:**
+- Satt opp React-prosjekt med Vite
+- Implementert hovedkomponenter:
+  - App
+  - Layout
+  - TaskList
+  - TaskItem
+- Lagt til lokal lagring
+
+**Feilrettinger:**
+- Fikset localStorage-feil ved første besøk
+- Løst problemer med tom lagring
+
+---
+
+### Onsdag - Brukergrensesnitt
+**Funksjonalitet:**
+- Lagt til slett- og redigerfunksjoner
+- Implementert dra-og-slipp
+- Stilsetting med Tailwind CSS
+- Responsivt design
+
+**Løste problemer:**
+- Fikset z-index i dropdown-menyene
+- Forbedret fokus-håndtering i skjemaer
+
+---
+
+### Torsdag - Testing og dokumentasjon
+**Dokumentasjon:**
+- Skrevet README
+- Dokumentert kode
+- Lagt til kommentarer
+
+**Testing:**
+- Testet på ulike enheter
+- Løst minnelekkasjer
+- Fikset problemer med raske brukerinteraksjoner
+
+---
+
+### Fredag - Avslutning
+**Gjennomførte endringer:**
+- Fikset gjenværende feil
+- Optimalisert ytelse
+- Fullført testing
+- Forberedt til levering
+
+---
+
+## Status
+
+**Kjente problemer:**
+1. Visuelle problemer i Safari
+2. Begrenset offline-støtte
+3. Mangler enhetstester
+
+**Planlagte forbedringer:**
+- Skrive tester
+- Forbedre tilgjengelighet
+- Legge til dark mode
+- Implementere synkronisering
+
+## Teknologier
+- React 18, Vite
+- Tailwind CSS
+- React Icons
+- date-fns
+- ESLint, Prettier
+- Figma
+- Git
+
+## Statistikk
+- Kodelinjer: ~1500
+- Komponenter: 12
+- Hovedfunksjoner: 5
+- Løste feil: 8
+- Gjenværende problemer: 3
