@@ -1,12 +1,81 @@
-# React + Vite
+# Super Todo List
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+En enkel og effektiv todo-liste laget med React og Vite. Hold oversikt over daglige oppgaver med et rent og brukervennlig grensesnitt.
 
-Currently, two official plugins are available:
+## Funksjoner
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Legg til oppgaver** - Enkelt legge til nye oppgaver
+- **Oppgaveliste** - Marker oppgaver som fullførte eller ufullførte
+- **Filtrering** - Filtrer oppgaver etter:
+  - Alle oppgaver
+  - Aktive oppgaver
+  - Fullførte oppgaver
+- **Responsivt design** - Fungerer på både mobil og desktop
+- **Rent grensesnitt** - Oversiktlig og enkelt å bruke
 
-## Expanding the ESLint configuration
+## Teknologier
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React 18
+- **Byggeverktøy**: Vite
+- **Stilsett**: CSS Modules & Styled Components
+- **Navigasjon**: React Router v6
+- **Dra og slipp**: react-beautiful-dnd
+- **Pakkehåndterer**: npm
+
+## Kom i gang
+
+1. Klon prosjektet:
+   ```bash
+   git clone https://github.com/dittbrukernavn/supertodolist.git
+   cd supertodolist
+   ```
+
+2. Installer avhengigheter:
+   ```bash
+   npm install
+   ```
+
+3. Start utviklingsserveren:
+   ```bash
+   npm run dev
+   ```
+
+4. Åpne nettleseren og gå til `http://localhost:5173`
+
+## Bygge for produksjon
+
+For å lage en produksjonsversjon:
+
+```bash
+npm run build
+```
+
+Dette vil generere en optimalisert produksjonsversjon i `dist`-mappen.
+
+## Prosjektstruktur
+
+```
+supertodolist/
+├── public/              # Statiske filer
+├── src/
+│   ├── assets/          # Bilder og andre statiske ressurser
+│   ├── components/      # Gjenbrukbare komponenter
+│   │   └── TodoApp/     # Hovedkomponenten for todo-listen
+│   ├── pages/           # Sider
+│   ├── styles/          # Globale stiler
+│   ├── App.jsx          # Hovedkomponent
+│   └── main.jsx         # Inngangspunkt for applikasjonen
+├── .gitignore
+├── package.json         # Avhengigheter og skript
+├── vite.config.js       # Vite-konfigurasjon
+└── README.md            # Denne filen
+```
+
+## Lisens
+
+Dette prosjektet er lisensiert under MIT-lisensen. Se [LICENSE](LICENSE) for detaljer.
+
+## Takk til
+
+- [Vite](https://vitejs.dev/) for rask utviklingsopplevelse
+- React-utviklermiljøet for fantastiske verktøy
