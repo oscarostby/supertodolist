@@ -280,81 +280,116 @@ const Section = ({ section, tasks, onTaskToggle, onTaskUpdate, onTaskDelete, onT
  * - Visning av modaler og redigeringsmoduser
  */
 const MainPage = () => {
-  const [lists, setLists] = useState(() => {
-    const savedLists = localStorage.getItem('todoLists');
-    let dataToLoad;
-    if (savedLists) {
-      try {
-        dataToLoad = JSON.parse(savedLists);
-        if (!dataToLoad.personal || typeof dataToLoad.personal !== 'object') {
-          console.warn("localStorage 'personal' list data is missing or invalid, reverting to default.");
-          dataToLoad = JSON.parse(JSON.stringify(initialLists));
-        } else {
-          const personalList = dataToLoad.personal;
-          personalList.title = 'Todo List'; // Ensure main title is set
-
-          if (typeof personalList.priorityEnabled === 'undefined') {
-            personalList.priorityEnabled = false; // Default if missing
-          }
-
-          const expectedSectionsConfig = personalList.priorityEnabled ? PRIORITY_SECTIONS_CONFIG : DEFAULT_SECTIONS_CONFIG;
-          const expectedSectionOrder = personalList.priorityEnabled ? PRIORITY_SECTION_ORDER : DEFAULT_SECTION_ORDER;
-
-          let sectionsAreCorrect = true;
-          if (!personalList.sections || !personalList.sectionOrder ||
-              JSON.stringify(Object.keys(personalList.sections).sort()) !== JSON.stringify(Object.keys(expectedSectionsConfig).sort()) ||
-              JSON.stringify(personalList.sectionOrder.sort()) !== JSON.stringify(expectedSectionOrder.sort())) {
-            sectionsAreCorrect = false;
-          } else {
-            for (const sectionId of personalList.sectionOrder) {
-                if (!personalList.sections[sectionId] || personalList.sections[sectionId].title !== expectedSectionsConfig[sectionId]?.title) {
-                    sectionsAreCorrect = false;
-                    break;
-                }
-            }
-          }
-
-          if (!sectionsAreCorrect) {
-            console.warn("localStorage list sections do not match priorityEnabled, rebuilding sections.");
-            let allTasks = [];
-            if (personalList.sections && personalList.sectionOrder) {
-                personalList.sectionOrder.forEach(secId => {
-                    if (personalList.sections[secId] && Array.isArray(personalList.sections[secId].tasks)) {
-                        allTasks = allTasks.concat(personalList.sections[secId].tasks);
-                    }
-                });
-            }
-            allTasks = allTasks.filter((task, index, self) => index === self.findIndex(t => t.id === task.id));
-
-            personalList.sections = JSON.parse(JSON.stringify(expectedSectionsConfig));
-            personalList.sectionOrder = [...expectedSectionOrder];
-
-            if (personalList.priorityEnabled) {
-              const targetSectionId = personalList.sections.todo ? 'todo' : expectedSectionOrder[0];
-              if (personalList.sections[targetSectionId]) {
-                personalList.sections[targetSectionId].tasks = allTasks;
-              } else {
-                 console.error("Target section for task redistribution not found in priority mode.");
-              }
-            } else {
-              if (personalList.sections.todo) {
-                personalList.sections.todo.tasks = allTasks;
-              } else {
-                console.error("Target section for task redistribution not found in default mode.");
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing localStorage lists, reverting to default:', error);
-        dataToLoad = JSON.parse(JSON.stringify(initialLists));
+  // Funksjon for å laste lister fra localStorage med detaljert logging
+  const loadLists = () => {
+    console.log('=== STARTER LASTING AV LAGREDE LISTER ===');
+    console.log('Tid:', new Date().toISOString());
+    
+    try {
+      // Prøv å hente lagret data
+      const saved = localStorage.getItem('todoLists');
+      console.log('1. Hentet fra localStorage:', saved ? 'Data funnet' : 'Ingen data funnet');
+      
+      if (!saved) {
+        console.log('2. Ingen lagrede lister funnet, bruker standard konfigurasjon.');
+        return JSON.parse(JSON.stringify(initialLists));
       }
-    } else {
-      dataToLoad = JSON.parse(JSON.stringify(initialLists));
+      
+      // Prøv å parse JSON
+      let parsed;
+      try {
+        parsed = JSON.parse(saved);
+        console.log('3. JSON parset OK');
+      } catch (parseError) {
+        console.error('3. FEIL ved parsing av JSON:', parseError);
+        throw new Error('Ugyldig JSON');
+      }
+      
+      // Logg strukturen på de lagrede dataene
+      console.log('4. Struktur på lagrede data:', {
+        hasPersonal: !!parsed.personal,
+        hasSections: !!(parsed.personal && parsed.personal.sections),
+        hasSectionOrder: Array.isArray(parsed.personal?.sectionOrder),
+        sectionCount: parsed.personal?.sectionOrder?.length || 0
+      });
+      
+      // Sjekk om dataen har grunnleggende struktur
+      if (!parsed || !parsed.personal || !parsed.personal.sections || !Array.isArray(parsed.personal.sectionOrder)) {
+        console.warn('5. Ugyldig datastruktur, bruker standard konfigurasjon.');
+        return JSON.parse(JSON.stringify(initialLists));
+      }
+      
+      // Logg alle seksjons-IDer og titler
+      console.log('6. Seksjoner funnet i lagret data:');
+      if (Array.isArray(parsed.personal.sectionOrder)) {
+        parsed.personal.sectionOrder.forEach((sectionId, index) => {
+          const section = parsed.personal.sections[sectionId];
+          console.log(`   ${index + 1}. ID: ${sectionId}, Tittel: ${section?.title || 'Mangler tittel'}, Oppgaver: ${section?.tasks?.length || 0}`);
+        });
+      }
+      
+      // Bygg et nytt objekt med bare det vi trenger
+      const result = {
+        personal: {
+          id: 'personal',
+          title: parsed.personal.title || 'Todo List',
+          priorityEnabled: !!parsed.personal.priorityEnabled,
+          sections: {},
+          sectionOrder: []
+        }
+      };
+      
+      console.log('7. Behandler seksjoner...');
+      let processedSections = 0;
+      let processedTasks = 0;
+      
+      // Legg til seksjoner fra sectionOrder hvis de finnes i sections
+      if (Array.isArray(parsed.personal.sectionOrder)) {
+        parsed.personal.sectionOrder.forEach(sectionId => {
+          const section = parsed.personal.sections[sectionId];
+          if (section && typeof section === 'object') {
+            const taskCount = Array.isArray(section.tasks) ? section.tasks.length : 0;
+            console.log(`   Behandler seksjon: "${section.title || 'Uten tittel'}" (${taskCount} oppgaver)`);
+            
+            result.personal.sections[sectionId] = {
+              id: section.id || sectionId,
+              title: section.title || 'Uten tittel',
+              tasks: Array.isArray(section.tasks) 
+                ? section.tasks
+                    .filter(t => t && typeof t === 'object')
+                    .map(t => ({
+                      id: t.id || generateId('task'),
+                      text: t.text || '',
+                      description: t.description || '',
+                      completed: !!t.completed
+                    }))
+                : []
+            };
+            result.personal.sectionOrder.push(sectionId);
+            
+            processedSections++;
+            processedTasks += taskCount;
+          }
+        });
+      }
+      
+      console.log(`8. Ferdig med lasting. Laster ${processedSections} seksjoner med totalt ${processedTasks} oppgaver.`);
+      console.log('=== FERDIG MED LASTING AV LAGREDE LISTER ===\n');
+      
+      return result;
+      
+    } catch (error) {
+      console.error('FEIL under lasting av lister:', {
+        error: error.message,
+        stack: error.stack
+      });
+      console.log('Bruker standard konfigurasjon pga. feil under lasting.\n');
+      return JSON.parse(JSON.stringify(initialLists));
     }
-    console.log('Initializing lists with:', dataToLoad);
-    return dataToLoad;
-  });
+  };
+  
+  // Initialiser state med lister fra localStorage
+  const [lists, setLists] = useState(loadLists);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
@@ -404,8 +439,154 @@ const MainPage = () => {
 
   // Lagrer lister til localStorage når de endres
   useEffect(() => {
-    console.log('Lagrer lister til localStorage:', lists);
-    localStorage.setItem('todoLists', JSON.stringify(lists));
+    console.log('\n=== STARTER LAGRING TIL LOCALSTORAGE ===');
+    console.log('Tid:', new Date().toISOString());
+    
+    // Logg hvilke lister som skal lagres
+    console.log('1. Skal lagre følgende lister:');
+    console.log({
+      antallSeksjoner: lists.personal.sectionOrder?.length || 0,
+      seksjoner: lists.personal.sectionOrder || [],
+      tittel: lists.personal.title || 'Ingen tittel',
+      prioritetAktivert: !!lists.personal.priorityEnabled
+    });
+    
+    // Logg detaljer om hver seksjon
+    if (lists.personal.sectionOrder && Array.isArray(lists.personal.sectionOrder)) {
+      console.log('2. Detaljer om seksjoner:');
+      lists.personal.sectionOrder.forEach((sectionId, index) => {
+        const section = lists.personal.sections[sectionId];
+        if (section) {
+          console.log(`   ${index + 1}. ${section.title || 'Uten tittel'} (${section.id})`);
+          console.log(`      Oppgaver: ${section.tasks?.length || 0} stk`);
+          
+          // Vis de første 3 oppgavene for hver seksjon for debugging
+          if (section.tasks && section.tasks.length > 0) {
+            console.log('      Eksempeloppgaver:');
+            section.tasks.slice(0, 3).forEach((task, taskIndex) => {
+              console.log(`      - ${taskIndex + 1}. ${task.text || 'Ingen tekst'} (${task.completed ? 'fullført' : 'ikke fullført'})`);
+            });
+            if (section.tasks.length > 3) {
+              console.log(`      ...og ${section.tasks.length - 3} flere`);
+            }
+          }
+        } else {
+          console.warn(`   ${index + 1}. Manglende seksjon med ID: ${sectionId}`);
+        }
+      });
+    }
+    
+    // Lag en ren kopi av dataen vi vil lagre
+    const dataToSave = {
+      personal: {
+        id: 'personal',
+        title: lists.personal.title || 'Todo List',
+        priorityEnabled: !!lists.personal.priorityEnabled,
+        sections: {},
+        sectionOrder: Array.isArray(lists.personal.sectionOrder) 
+          ? [...lists.personal.sectionOrder] 
+          : []
+      }
+    };
+    
+    // Kopier seksjonene
+    if (lists.personal.sections && typeof lists.personal.sections === 'object') {
+      console.log('3. Kopierer seksjoner...');
+      let sectionsCopied = 0;
+      let tasksCopied = 0;
+      
+      Object.entries(lists.personal.sections).forEach(([sectionId, section]) => {
+        if (section && typeof section === 'object') {
+          const taskCount = Array.isArray(section.tasks) ? section.tasks.length : 0;
+          console.log(`   Kopierer seksjon: "${section.title || 'Uten tittel'}" (${taskCount} oppgaver)`);
+          
+          dataToSave.personal.sections[sectionId] = {
+            id: section.id || sectionId,
+            title: section.title || 'Uten tittel',
+            tasks: Array.isArray(section.tasks) 
+              ? section.tasks
+                  .filter(t => t && typeof t === 'object')
+                  .map(t => ({
+                    id: t.id || generateId('task'),
+                    text: t.text || '',
+                    description: t.description || '',
+                    completed: !!t.completed
+                  }))
+              : []
+          };
+          
+          sectionsCopied++;
+          tasksCopied += taskCount;
+        }
+      });
+      
+      console.log(`   Ferdig med kopiering: ${sectionsCopied} seksjoner med totalt ${tasksCopied} oppgaver`);
+    }
+    
+    // Lagre til localStorage
+    try {
+      console.log('4. Lagrer til localStorage...');
+      const dataString = JSON.stringify(dataToSave);
+      
+      // Logg størrelsen på dataene som skal lagres
+      const dataSize = new TextEncoder().encode(dataString).length;
+      const maxSize = 5 * 1024 * 1024; // 5MB, typisk grense for localStorage
+      console.log(`   Størrelse på data: ${(dataSize / 1024).toFixed(2)} KB`);
+      console.log(`   Tilgjengelig plass: ${(maxSize / 1024 / 1024).toFixed(2)} MB`);
+      
+      if (dataSize > maxSize * 0.9) {
+        console.warn('   ADVARSEL: Nærmer seg lagringsgrense!');
+      }
+      
+      // Utfør selve lagringen
+      localStorage.setItem('todoLists', dataString);
+      console.log('5. Lagring fullført');
+      
+      // Verifiser at dataen ble lagret
+      setTimeout(() => {
+        console.log('6. Verifiserer lagring...');
+        const savedData = localStorage.getItem('todoLists');
+        
+        if (savedData === dataString) {
+          console.log('   Verifisert: Dataene ble lagret korrekt');
+        } else if (savedData) {
+          console.warn('   ADVARSEL: Lagret data ser ikke ut til å matche forventet verdi');
+          console.log('   Forventet lengde:', dataString.length);
+          console.log('   Faktisk lengde:', savedData.length);
+        } else {
+          console.error('   FEIL: Kunne ikke hente lagret data');
+        }
+        
+        console.log('=== FERDIG MED LAGRING TIL LOCALSTORAGE ===\n');
+      }, 100);
+      
+    } catch (error) {
+      console.error('FEIL under lagring til localStorage:', {
+        error: error.message,
+        stack: error.stack
+      });
+      
+      // Prøv å lagre en mindre mengde data for å se om det hjelper
+      try {
+        console.log('Prøver å lagre en forenklet versjon...');
+        const minimalData = {
+          personal: {
+            id: 'personal',
+            title: lists.personal.title || 'Todo List',
+            priorityEnabled: false,
+            sections: {},
+            sectionOrder: []
+          }
+        };
+        localStorage.setItem('todoLists', JSON.stringify(minimalData));
+        console.log('Kunne lagre en tom versjon, noe er galt med dataene våre');
+      } catch (innerError) {
+        console.error('Kunne ikke lagre engang en tom versjon:', innerError.message);
+      }
+      
+      console.log('=== FEIL UNDER LAGRING TIL LOCALSTORAGE ===\n');
+    }
+    
   }, [lists]);
 
 
@@ -484,25 +665,36 @@ const MainPage = () => {
       setIsExpanded(true);
     } else if (inputValue.trim() !== '') {
       const newTask = {
-        id: `task-${Date.now()}`,
+        id: generateId('task'),
         text: inputValue.trim(),
         description: '',
         completed: false
       };
       
-      setLists(prev => ({
-        ...prev,
-        personal: {
-          ...prev.personal,
-          sections: {
-            ...prev.personal.sections,
-            [activeSection]: {
-              ...prev.personal.sections[activeSection],
-              tasks: [...prev.personal.sections[activeSection].tasks, newTask]
+      setLists(prev => {
+        const updatedLists = {
+          ...prev,
+          personal: {
+            ...prev.personal,
+            sections: {
+              ...prev.personal.sections,
+              [activeSection]: {
+                ...prev.personal.sections[activeSection],
+                tasks: [...prev.personal.sections[activeSection].tasks, newTask]
+              }
             }
           }
+        };
+        
+        // Lagre til localStorage direkte for å unngå forsinkelse
+        try {
+          localStorage.setItem('todoLists', JSON.stringify(updatedLists));
+        } catch (error) {
+          console.error('Kunne ikke lagre til localStorage:', error);
         }
-      }));
+        
+        return updatedLists;
+      });
       
       setInputValue('');
       setIsExpanded(false);
@@ -694,29 +886,47 @@ const MainPage = () => {
   };
 
   /**
+   * Genererer en unik ID for nye seksjoner
+   */
+  const generateId = (prefix = 'section') => {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  /**
    * Legger til en ny seksjon/undermappe
    */
   const handleAddList = () => {
     if (newListName.trim() === '') return;
     
-    const newSectionId = `section-${Date.now()}`;
+    const newSectionId = generateId('section');
     const newSection = {
       id: newSectionId,
       title: newListName.trim(),
       tasks: []
     };
     
-    setLists(prev => ({
-      ...prev,
-      personal: {
-        ...prev.personal,
-        sections: {
-          ...prev.personal.sections,
-          [newSectionId]: newSection
-        },
-        sectionOrder: [...prev.personal.sectionOrder, newSectionId]
+    setLists(prev => {
+      const updatedLists = {
+        ...prev,
+        personal: {
+          ...prev.personal,
+          sections: {
+            ...prev.personal.sections,
+            [newSectionId]: newSection
+          },
+          sectionOrder: [...prev.personal.sectionOrder, newSectionId]
+        }
+      };
+      
+      // Lagre til localStorage direkte for å unngå forsinkelse
+      try {
+        localStorage.setItem('todoLists', JSON.stringify(updatedLists));
+      } catch (error) {
+        console.error('Kunne ikke lagre til localStorage:', error);
       }
-    }));
+      
+      return updatedLists;
+    });
     
     setActiveSection(newSectionId);
     setIsAddingList(false);

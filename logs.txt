@@ -1,7 +1,3 @@
-# Super Todo List - Utviklingslogg
-
-## Uke 23
-
 ### Mandag - Planlegging
 **Gjennomførte oppgaver:**
 - Analysert kravspesifikasjoner
