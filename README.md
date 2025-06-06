@@ -1,7 +1,5 @@
 # Super Todo List
 
-En enkel og effektiv todo-liste laget med React og Vite. Hold oversikt over daglige oppgaver med et rent og brukervennlig grensesnitt.
-
 ## Hvordan bruke
 
 1. **Legg til oppgaver**
@@ -135,7 +133,3 @@ supertodolist/
 
 Dette prosjektet er lisensiert under MIT-lisensen. Se [LICENSE](LICENSE) for detaljer.
 
-## Takk til
-
-- [Vite](https://vitejs.dev/) for rask utviklingsopplevelse
-- React-utviklermiljøet for fantastiske verktøy
